@@ -12,3 +12,6 @@ __pycache__/
 
 # Ignore Learning folder
 Learning/
+
+# Ignore Exercise folder
+Exercise/

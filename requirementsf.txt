@@ -4,3 +4,4 @@ goprocam==4.2.0
 numpy==1.26.4
 opencv-python==4.9.0.80
 python-dotenv==1.0.1
+streamlit==1.33.0
