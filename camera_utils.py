@@ -1,3 +1,5 @@
+import cv2
+import time
 import os
 from dotenv import load_dotenv
 
@@ -29,9 +31,33 @@ def get_droidcam_url():
     return url
 
 
+def initialize_video_capture(url):
+    """
+    Initialize a video capture object with the provided URL.
+
+    Parameters:
+        url (str): The URL of the video feed.
+
+    Returns:
+        cv2.VideoCapture or None: The initialized video capture object if successful, None otherwise.
+    """
+    try:
+        # Attempt to initialize a video capture object with the DroidCam video feed
+        video = cv2.VideoCapture(url)
+        # Wait for a second to stabilize the feed and ensure the video capture object is ready then return it
+        time.sleep(1)
+        return video
+
+    except Exception as e:
+        # If there's an error opening the feed, print an error message and return None
+        print("\nError: Unable to open DroidCam feed\nError: {e}\n")
+        return None
+
+
 def main():
     test_url = get_droidcam_url()
     print(f"\n{test_url}\n")
+
 
 if __name__ == '__main__':
     main()
