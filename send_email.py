@@ -91,8 +91,7 @@ def read_image_content(image_path):
 
 if __name__ == "__main__":
 
-    test_img_path = Path("./assets") / "notes" / \
-        "detecting_object_on_cam_logic.png"
+    test_img_path = Path("./Notes") / "detecting_object_on_cam_logic.png"
 
     if send_email(test_img_path):
         print("\nEmail sent successfully.\n")

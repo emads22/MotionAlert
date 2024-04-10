@@ -1,50 +1,89 @@
 import cv2
-import time
 from pathlib import Path
-import glob
 import os
+import shutil
 from threading import Thread
-from camera_utils import get_droidcam_url, initialize_video_capture
+import camera_utils as cu
 from send_email import send_email
 
 
-# Constants
 CAPTURED_PICTURES_DIR = Path("./assets") / "captured"
-MIN_CONTOUR_AREA = 5000
-THRESHOLD_VALUE = 60
-GAUSSIAN_BLUR_KERNEL_SIZE = (21, 21)
+ATTACHED_PICTURES_DIR = Path("./assets") / "attached"
 
 
-def clean_captured_dir():
+def clean_directory(directory):
     """
-    Clean up the captured pictures directory by removing all PNG image files.
+    Clean up the directory by removing all PNG image files.
 
     Args:
-        None
+        directory (Path): The directory path from which to remove PNG image files.
 
     Returns:
         None
     """
-    # Get a list of all PNG image files in the directory, glob.glob() takes a str as arg and returns a list instead of generator
-    all_img_files = glob.glob(str(CAPTURED_PICTURES_DIR / "*.png"))
+    # Get a list of all PNG image files in the directory
+    all_img_files = directory.glob("*.png")
 
     # Iterate over each image file and remove it
     for img_file in all_img_files:
         os.remove(img_file)
 
 
+def get_motion_object_image():
+    """
+    Retrieves the image likely to contain the object of interest from the captured images directory,
+    copies it to another directory, and returns the path to the copied image.
+
+    The function selects the image that is most likely to contain the object of interest 
+    from a sequence of captured images. It finds the middle image in the sequence, as the object 
+    of interest is likely to be present in the middle frames of the captured sequence.
+
+    Returns:
+        str: The path to the copied image containing the object of interest.
+    """
+    # Get all saved images in the directory, find the middle index, and select the image in the middle (or closest to the middle)
+    # the object of interest is likely to be present in the middle frames of the captured sequence.
+    all_images = list(CAPTURED_PICTURES_DIR.glob("*.png"))
+    mid_index = len(all_images) // 2
+    image_with_object = all_images[mid_index]
+
+    # Copy the image to the destination directory, and save the new path returned from shutil.copy()
+    # this way clean_captured_thread wont intervene with email_thread cz the latter will use an image file from outside the captured dir that is being cleared byt the daemon thread clean_aptured_thread
+    image_with_object = shutil.copy(
+        image_with_object, ATTACHED_PICTURES_DIR)
+
+    return image_with_object
+
+
+def save_this_frame_locally(frame, id):
+    """
+    Saves the provided frame as an image file with rectangles indicating motion in a specified directory.
+
+    Args:
+        frame (numpy.ndarray): The frame to be saved as an image.
+        id (int): The identifier used to generate the filename.
+
+    Returns:
+        None
+    """
+    # Define the output path for the image that has rectangles (with motion) and Write the frame to it as a PNG image
+    output_path = CAPTURED_PICTURES_DIR / f"image_{id}.png"
+    cv2.imwrite(str(output_path), frame)
+
+
 def webcam_monitoring():
 
-    url = get_droidcam_url()  # Get the URL for the DroidCam server
+    url = cu.get_droidcam_url()  # Get the URL for the DroidCam server
     # Initialize a video capture object with the DroidCam video feed
-    video = initialize_video_capture(url)
+    video = cu.initialize_video_capture(url)
 
     if video is None:
         return
 
     # Initialize variable to store the first frame of the video
     original_frame_no_rectangles = None
-    first_frame = None  # Initialize variable to store the first frame in gray of the video
+    # Initialize variable to store the first frame in gray of the video
+    first_gray_frame = None
     status_list = []  # List to store the status of motion detection
     img_id = 1  # Counter to keep track of image IDs
 
@@ -55,65 +94,36 @@ def webcam_monitoring():
         check, frame = video.read()  # Read a frame from the video capture object
 
         if not check:
-            # If failed to read a frame, print an error message and release the video object
             print("\nError: Failed to read frame from DroidCam feed\n")
-            video.release()
-            return
+            return  # Exit the function if failed to read frame
 
         if original_frame_no_rectangles is None:
             # If it's the original frame that has no rectangles (no motions), set it as the reference frame
             original_frame_no_rectangles = frame
 
-        # Convert the frame to grayscale for motion detection
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # Apply Gaussian blur to the grayscale frame to reduce noise
-        gray_frame_gau_blurred = cv2.GaussianBlur(
-            gray_frame, GAUSSIAN_BLUR_KERNEL_SIZE, 0)
-
-        if first_frame is None:
-            # If it's the first frame, set it as the reference frame and skip this iteration to the next one
-            first_frame = gray_frame_gau_blurred
+        if first_gray_frame is None:
+            # If it's the first frame, Convert the current frame to grayscale and set it as the reference gray frame for motion detection and skip this iteration to the next one
+            first_gray_frame = cu.grayscale_and_noise_reduction(frame)
             continue
 
-        # Calculate the absolute difference between the current frame and the reference frame (first frame)
-        delta_frame = cv2.absdiff(first_frame, gray_frame_gau_blurred)
-        # Apply a threshold to obtain the difference as a binary image where motion areas are highlighted
-        _, thresh_frame = cv2.threshold(
-            delta_frame, THRESHOLD_VALUE, 255, cv2.THRESH_BINARY)
-        # Dilate the thresholded image to fill gaps and holes in the detected objects
-        dilated_frame = cv2.dilate(thresh_frame, None, iterations=2)
-        # Find contours of objects in the dilated frame
-        contours, _ = cv2.findContours(
-            dilated_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Get contours of motion objects in the current frame relative to the first frame
+        contours = cu.get_motion_objects_contours(frame, first_gray_frame)
 
+        # Iterate through the contours
         for contour in contours:
-            # Iterate through the contours
-            if cv2.contourArea(contour) < MIN_CONTOUR_AREA:
-                # If the area of contour is smaller than a threshold, ignore it (considered as noise)
-                continue
+            # If a contour is found with an area that is higher than a threshold draw rectangle, otherwise ignore it (considered as noise)
+            if cv2.contourArea(contour) > cu.MIN_CONTOUR_AREA:
+                # Draw a rectangle around the detected object on the frame
+                cu.draw_contour_rectangle(frame, contour)
 
-            # If a significant contour is found, draw a rectangle around it
-            # Get the bounding rectangle coordinates
-            x, y, w, h = cv2.boundingRect(contour)
-            # Draw a green rectangle of width 2 around the detected object on the original frame and return the modified image
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                # Check if the current frame (frame) differs from the first frame (original_frame_no_rectangles) after drawing rectangles.
+                if not (frame == original_frame_no_rectangles).all():
+                    # If this is True, it indicates that cv2.rectangle() has modified the frame, implying that motion has been detected. Therefore, update the status variable to 1 to indicate motion detection.
+                    status = 1
 
-            # FIXME
-            # Check if the current frame (frame) differs from the first frame (original_frame_no_rectangles) after drawing rectangles.
-            if not (frame == original_frame_no_rectangles).all():
-                # If this is True, it means that at least one element in the arrays is not equal, indicating that cv2.rectangle() has modified the frame, implying motion detection, so Update the status variable to 1 to indicate motion detection.
-                status = 1
-
-                # Define the output path for the image that has rectangles (with motion) and Write the frame to it as a PNG image
-                output_path = CAPTURED_PICTURES_DIR / f"image_{img_id}.png"
-                cv2.imwrite(str(output_path), frame)
-                img_id += 1  # Increment the image ID for the next image
-
-                # Get all saved images in the directory, find the middle index, and select the image in the middle (or closest to the middle)
-                # the object of interest is likely to be present in the middle frames of the captured sequence.
-                all_images = list(CAPTURED_PICTURES_DIR.glob("*.png"))
-                mid_index = len(all_images) // 2
-                image_with_object = all_images[mid_index]
+                    # Save the current frame locally as an image with rectangles indicating motion
+                    save_this_frame_locally(frame, img_id)
+                    img_id += 1  # Increment the image ID for the next image
 
         # Append the status to the status list and keep only the last two statuses (also save memory instead of huge list)
         status_list.append(status)
@@ -121,12 +131,21 @@ def webcam_monitoring():
 
         # If the last two statuses indicate a transition from motion to no motion, send an email
         if status_list == [1, 0]:
-            email_thread = Thread(target=send_email, args=(image_with_object,), daemon = True)
-            clean_thread = Thread(target=clean_captured_dir, daemon = True)
+            # Retrieve the image likely to contain the object in motion
+            motion_object_picture = get_motion_object_image()
 
+            # Create a thread for sending the email with the captured image (daemon thread to ensure it doesn't prevent program termination)
+            email_thread = Thread(target=send_email, args=(
+                motion_object_picture,), daemon=True)
+
+            # Create a thread for cleaning up the captured directory (daemon thread to ensure it doesn't prevent program termination)
+            clean_captured_thread = Thread(target=clean_directory, args=(
+                CAPTURED_PICTURES_DIR,), daemon=True)
+
+            # Start the email_thread to send the email asynchronously.
             email_thread.start()
-            clean_thread.start()
-            
+            # Start the clean_captured_thread to clear the captured directory asynchronously.
+            clean_captured_thread.start()
 
         print(status_list)  # Print the status list for debugging purposes
 
@@ -143,6 +162,13 @@ def webcam_monitoring():
     video.release()
     # Close all OpenCV windows
     cv2.destroyAllWindows()
+
+    # finally clean the attached directory
+    clean_directory(ATTACHED_PICTURES_DIR)
+
+    # Ensure the email is sent before the program exits by waiting for the email thread to finish, but only attempt to join the thread if it exists
+    if email_thread:
+        email_thread.join()
 
 
 if __name__ == "__main__":
