@@ -1,42 +1,52 @@
-# Webcam Monitoring Application
+# Webcam Motion Detection and Notification
 
 ## Overview
-Webcam Monitoring Application is a Python script designed to monitor a webcam feed for motion detection, specifically tailored for DroidCam cameras from mobile devices. Users can continuously monitor their DroidCam feed for motion, with the application drawing rectangles around detected motion areas and capturing frames with motion, saving them locally. Additionally, the application sends email notifications with captured images when motion is detected.
+Webcam Motion Detection and Notification is a Python application designed to monitor a webcam feed for motion detection using the DroidCam app as a server. When motion is detected, the application sends an email notification with an image attachment of the detected motion.
 
-If users want to use the laptop camera instead, they can replace the following line:
+## Features
+- **Motion Detection**: Detects motion in the webcam feed using computer vision techniques.
+- **Email Notification**: Sends an email notification with an attached image when motion is detected.
+- **Automated Cleanup**: Cleans up captured images directory after sending an email notification.
+
+## Setup
+1. Clone the repository.
+2. Ensure Python 3.x is installed.
+3. Install the required dependencies using `pip install -r requirements.txt`.
+4. Configure the necessary parameters such as `DROIDCAM_IP_ADDRESS`, `DROIDCAM_PORT_NUMBER`, `USER`, `PASSWORD`, and `RECEIVER` in `constants.py` file.
+   - Make sure to provide valid SMTP credentials for sending emails.
+5. Run the script using `python webcam_monitoring.py`.
+
+## Usage
+1. Run the script using `python webcam_monitoring.py`.
+2. Ensure the DroidCam app is running and providing a video feed.
+3. Monitor the terminal for status updates and debug messages.
+4. When motion is detected, an email notification will be sent with an attached image of the detected motion.
+
+## Using Laptop Camera
+If users want to use the laptop camera instead of DroidCam, they can replace the following lines:
+
 ```python
 url = cu.get_droidcam_url()  # Get the URL for the DroidCam server
 video = cu.initialize_video_capture(url)  # Initialize a video capture object with the DroidCam video feed
 ```
+
 with:
+
 ```python
 video = cv2.VideoCapture(0)  # Use the default laptop camera (index 0)
 # or
 video = cv2.VideoCapture(1)  # Use the second available camera (index 1), depending on preference
 ```
 
-## Installation
-1. Clone this repository.
-2. Navigate to the repository directory.
-3. Install the required Python packages using pip:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## OpenCV and Motion Detection Logic
+The motion detection in this project follows a simple logic:
+1. **Background Subtraction**: It starts with background subtraction by converting frames to grayscale and then applying Gaussian blur for noise reduction.
+2. **Motion Detection**: It calculates the absolute difference between the current frame and the reference frame to identify motion areas.
+3. **Contour Detection**: It finds contours of objects in the difference frame and draws rectangles around them.
+4. **Email Notification**: When motion is detected, an email notification is sent with an attached image of the detected motion.
 
-## Usage
-1. Run the webcam_monitoring.py script:
-   ```bash
-   python webcam_monitoring.py
-   ```
-2. Press the 'q' key to exit the application.
-
-## Configuration
-You can customize the following settings in the config.py file:
-- URL for the webcam feed.
-- Minimum contour area for motion detection.
-- Threshold value for detecting motion.
-- Gaussian blur kernel size for noise reduction.
-- Directories for storing captured and attached images.
+## Automated Cleanup
+After sending an email notification, the captured images directory is automatically cleaned up to remove all PNG image files.
 
 ## Contributing
 Contributions are welcome! Here are some ways you can contribute to the project:
@@ -44,13 +54,12 @@ Contributions are welcome! Here are some ways you can contribute to the project:
 - Suggest new features or improvements
 - Submit pull requests with bug fixes or enhancements
 
-## About
-This application uses OpenCV for computer vision tasks and provides a simple yet effective solution for webcam monitoring with motion detection.
-
 ## Author
 - Emad &nbsp; E>
   
   [<img src="https://img.shields.io/badge/GitHub-Profile-blue?logo=github" width="150">](https://github.com/emads22)
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License, which grants permission for free use, modification, distribution, and sublicense of the code, provided that the copyright notice (attributed to [emads22](https://github.com/emads22)) and permission notice are included in all copies or substantial portions of the software. This license is permissive and allows users to utilize the code for both commercial and non-commercial purposes.
+
+Please see the [LICENSE](LICENSE) file for more details.

@@ -1,14 +1,10 @@
 import cv2
-from pathlib import Path
 import os
 import shutil
 from threading import Thread
 import camera_utils as cu
 from send_email import send_email
-
-
-CAPTURED_PICTURES_DIR = Path("./assets") / "captured"
-ATTACHED_PICTURES_DIR = Path("./assets") / "attached"
+from constants import *
 
 
 def clean_directory(directory):

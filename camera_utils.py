@@ -1,17 +1,6 @@
 import cv2
 import time
-import os
-from dotenv import load_dotenv
-
-
-# Load environment variables from .env file
-load_dotenv()
-
-
-# Constants
-MIN_CONTOUR_AREA = 5000
-THRESHOLD_VALUE = 60
-GAUSSIAN_BLUR_KERNEL_SIZE = (21, 21)
+from constants import *
 
 
 def get_droidcam_url():
@@ -23,16 +12,12 @@ def get_droidcam_url():
     Returns:
     str: The URL for the DroidCam server.
     """
-    # Get the IP address and port number of the DroidCam server from environment variables
-    droidcam_ip_address = os.getenv('DROIDCAM_IP_ADDRESS')
-    droidcam_port_number = os.getenv('DROIDCAM_PORT_NUMBER')
-
-    if not droidcam_ip_address or not droidcam_port_number:
+    if not DROIDCAM_IP_ADDRESS or not DROIDCAM_PORT_NUMBER:
         print("\nError: DroidCam IP address or port number not set\n")
         return None
 
     # Construct the URL for the DroidCam server
-    url = f'http://{droidcam_ip_address}:{droidcam_port_number}/video'
+    url = f'http://{DROIDCAM_IP_ADDRESS}:{DROIDCAM_PORT_NUMBER}/video'
 
     return url
 

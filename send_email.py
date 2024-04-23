@@ -4,18 +4,7 @@ from email.message import EmailMessage
 # import imghdr  # imghdr became deprecated
 from PIL import Image
 from pathlib import Path
-from dotenv import load_dotenv
-
-
-# Load environment variables from the .env file
-load_dotenv()
-
-
-SENDER = os.getenv("USER")
-PASSWORD = os.getenv("PASSWORD")
-RECEIVER = os.getenv("RECEIVER")
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+from constants import *
 
 
 def send_email(image_path):
