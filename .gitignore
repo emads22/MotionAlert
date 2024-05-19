@@ -1,14 +1,14 @@
 # Ignore virtual environment
-.venv/
+**/.venv/
 
 # Ignore Python bytecode
-__pycache__/
+**/__pycache__/
 
 # Ignore .env file 
-.env
+**/.env
 
 # Ignore .vscode folder
-.vscode/
+**/.vscode/
 
 # Ignore Learning folder
 Learning/
