@@ -1,12 +1,21 @@
-# Webcam Motion Detection and Notification
+# MotionAlert
 
 ## Overview
-Webcam Motion Detection and Notification is a Python application designed to monitor a webcam feed for motion detection using the DroidCam app as a server. When motion is detected, the application sends an email notification with an image attachment of the detected motion.
+MotionAlert is a Python application designed to monitor a webcam feed for motion detection using either a computer camera or any IP camera (also known as a network camera). It is a CLI application that keeps running to detect motion, and whenever the `Q` button (the 'q' key) is pressed, the program exits. This logic can be improved for daily use or real-life applications to avoid the need for human interaction to press anything. When motion is detected, the application sends an email notification with an image attachment of the detected motion.
+
+To demonstrate its functionality, this application specifically uses the DroidCam app as a server.
 
 ## Features
 - **Motion Detection**: Detects motion in the webcam feed using computer vision techniques.
 - **Email Notification**: Sends an email notification with an attached image when motion is detected.
 - **Automated Cleanup**: Cleans up captured images directory after sending an email notification.
+
+## Technologies Used
+- **numpy**: For numerical operations and handling arrays.
+- **opencv-python**: For computer vision tasks and processing the webcam feed.
+- **pillow**: For image processing and manipulation.
+- **python-dotenv**: For managing environment variables.
+- **threading**: For running multiple threads concurrently.
 
 ## Setup
 1. Clone the repository.
