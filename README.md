@@ -1,5 +1,7 @@
 # MotionAlert
 
+![MotionAlert_logo](./assets/images/MotionAlert_logo.png)
+
 ## Overview
 MotionAlert is a Python application designed to monitor a webcam feed for motion detection using either a computer camera or any IP camera (also known as a network camera). It is a CLI application that keeps running to detect motion, and whenever the `Q` button (the 'q' key) is pressed, the program exits. This logic can be improved for daily use or real-life applications to avoid the need for human interaction to press anything. When motion is detected, the application sends an email notification with an image attachment of the detected motion.
 
