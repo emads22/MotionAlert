@@ -69,6 +69,9 @@ def save_this_frame_locally(frame, id):
 
 def webcam_monitoring():
 
+    # Display logo
+    print("\n\n\n\n", ASCII_ART, "\n\n")
+    
     url = cu.get_droidcam_url()  # Get the URL for the DroidCam server
     # Initialize a video capture object with the DroidCam video feed
     video = cu.initialize_video_capture(url)
